@@ -46,7 +46,7 @@ export function createDiagramData(componentState: DiagramState): GraphData {
             id: 'host extension',
             name: componentState.extensionName,
             shortName: unqualifiedName(componentState.extensionName),
-            value: 20
+            value: 10
         } as ComponentNode);
 
     }
@@ -77,10 +77,12 @@ export function createDiagramData(componentState: DiagramState): GraphData {
 
 export type HighlightData = { link: string, type: string }
 
-export let updateLinks: React.Dispatch<React.SetStateAction<Array<{ link: string, type: string }>>> | undefined = undefined;
+export let updateLinks: (update: HighlightData[]) => void = () => void 0;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function Diagram(options: DiagramState): JSX.Element {
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [highlightLinks, setHighlightLinks] = useState(Array<HighlightData>());
     updateLinks = setHighlightLinks;
 
@@ -93,6 +95,7 @@ export function Diagram(options: DiagramState): JSX.Element {
         }
     }
     const diagramRef = useRef<ForceGraphMethods>();
+
     useEffect(() => {
         setTimeout(() => {
             if (diagramRef.current && options.doCenter) {
@@ -102,17 +105,36 @@ export function Diagram(options: DiagramState): JSX.Element {
         }, 250);
     }, [options.doCenter]);
 
+    const graphData = createDiagramData(options);
+    let particleSize = 0;
+    let particleColor: string | undefined = undefined;
+
+    useEffect(() => {
+
+        highlightLinks.forEach((highlight, index) => {
+            const linkObj = graphData.links.find(link => highlight.link === linkId(link));
+            if (linkObj) {
+
+                setTimeout(() => {
+                    particleSize = 4;
+                    particleColor = toParticleColor(highlight.type);
+                    diagramRef.current?.emitParticle(linkObj);
+                }, index * 450);
+                //diagramRef.current?.pauseAnimation();
+            }
+        });
+    }, [highlightLinks]);
+
     return <ForceGraph2D
         ref={diagramRef}
-        graphData={createDiagramData(options)}
+        graphData={graphData}
         height={200}
         nodeAutoColorBy="name" // uses Node's property name
         nodeLabel="shortName"
         linkAutoColorBy="name"
-        linkDirectionalParticles={1}
-        linkDirectionalParticleSpeed={link => (link as ComponentNode).value * 0.002}
-        linkDirectionalParticleWidth={link => highlightLinks.find(entry => entry.link === (link.source as NodeObject).id + '->' + (link.target as NodeObject).id) ? 4 : 0}
-        linkDirectionalParticleColor={link => toParticleColor(highlightLinks.find(entry => entry.link === (link.source as NodeObject).id + '->' + (link.target as NodeObject).id)?.type)}
+        linkDirectionalParticles={particleSize}
+        linkDirectionalParticleSpeed={0.03}
+        linkDirectionalParticleColor={particleColor}
         nodeCanvasObject={(rawNode, ctx, _globalScale) => {
             rawNode.vx = 10;
             rawNode.vy = 100;
@@ -121,6 +143,14 @@ export function Diagram(options: DiagramState): JSX.Element {
         nodePointerAreaPaint={paintNode}
     />;
 
+}
+
+function linkId(link: LinkObject): string {
+    return toLinkId((link.source as NodeObject).id, (link.target as NodeObject).id);
+}
+
+export function toLinkId(source: string | number | undefined, target: string | number | undefined): string {
+    return `${source}->${target}`;
 }
 
 function paintNode(rawNode: NodeObject, color: string, ctx: CanvasRenderingContext2D) {

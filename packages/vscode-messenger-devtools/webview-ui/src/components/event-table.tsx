@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ColDef, GridApi } from 'ag-grid-community';
+import 'ag-grid-community/dist/styles/ag-grid.css';
+import 'ag-grid-community/dist/styles/ag-theme-alpine-dark.css';
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
-import { ExtendedMessengerEvent } from '../devtools-view';
 import React from 'react';
 import { MessengerEvent } from 'vscode-messenger';
+import { ExtendedMessengerEvent } from '../devtools-view';
 
 const columnDefs: ColDef[] = [
     {

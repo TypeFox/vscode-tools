@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { VSCodeBadge } from '@vscode/webview-ui-toolkit/react';
 import { CellFocusedEvent } from 'ag-grid-community';
-import 'ag-grid-community/dist/styles/ag-grid.css';
-import 'ag-grid-community/dist/styles/ag-theme-alpine-dark.css';
-import 'ag-grid-community/dist/styles/ag-theme-alpine.css';
 import React from 'react';
 import { ExtensionInfo, MessengerEvent } from 'vscode-messenger';
 import { BROADCAST, HOST_EXTENSION } from 'vscode-messenger-common';
@@ -11,7 +8,7 @@ import { Messenger } from 'vscode-messenger-webview';
 import '../css/devtools-view.css';
 import '../node_modules/@vscode/codicons/dist/codicon.css';
 import '../node_modules/@vscode/codicons/dist/codicon.ttf';
-import { Diagram, HighlightData, updateLinks } from './components/diagram';
+import { Diagram, HighlightData, toLinkId, updateLinks } from './components/diagram';
 import { EventTable } from './components/event-table';
 import { ReactECharts, collectChartData, createOptions } from './components/react-echart';
 import { ViewHeader } from './components/view-header';
@@ -58,13 +55,14 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
         });
 
     }
+
     render() {
 
-        const charSeries = collectChartData(this.state.datasetSrc.get(this.state.selectedExtension)?.events ?? []);
+        const charSeries = collectChartData(this.selectedExtensionData()?.events ?? []);
         const optionSize = createOptions(charSeries.series[0], charSeries.senderY, '  (chars)');
         const optionCount = createOptions(charSeries.series[1], charSeries.senderY);
 
-        const selectedExt = this.state.datasetSrc.get(this.state.selectedExtension);
+        const selectedExt = this.selectedExtensionData();
         const updateState = (selectedId: string) => {
             this.updateState({ ...this.state, selectedExtension: selectedId }, true);
         };
@@ -155,7 +153,8 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
                         this.state.diagramShown &&
                         <Diagram extensionName={selectedExt?.name ?? ''}
                             webviews={selectedExt?.info?.webviews ?? []}
-                            doCenter={this.state.diagramShown} />
+                            doCenter={this.state.diagramShown}
+                        />
                     }
                 </div>
             </>
@@ -175,9 +174,10 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
             const request = extensionData.events.slice(0, 200).find(event => event.type === 'request' && event.id === dataEvent.event.id);
             if (request && request.timestamp) {
                 dataEvent.event.timeAfterRequest = dataEvent.event.timestamp - request.timestamp;
-                highlight.push({ link: dataEvent.event.receiver + '->' + dataEvent.event.sender, type: 'request' });
+                highlight.push({ link: toLinkId(dataEvent.event.receiver, dataEvent.event.sender), type: 'request' });
             }
         }
+
         if (dataEvent.event.type === 'notification' || dataEvent.event.type === 'request') {
             if (dataEvent.event.parameter) {
                 dataEvent.event.methodTooltip = `Parameter (max 500 chars):\n ${JSON.stringify(dataEvent.event.parameter, undefined, '  ').substring(0, 499)}`;
@@ -185,6 +185,7 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
                 dataEvent.event.methodTooltip = 'Parameters are empty or suppressed using diagnostic API options.';
             }
         }
+
         extensionData.events.unshift(dataEvent.event);
 
         highlight.push(...this.createHighlightData(extensionData, dataEvent.event));
@@ -205,15 +206,15 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
             if (msgEvent.receiver === BROADCAST.type) {
                 // for broadcast, events first send to the extension host
                 return [
-                    { link: msgEvent.sender + '->' + 'host extension', type: msgEvent.type },
+                    { link: toLinkId(msgEvent.sender, 'host extension'), type: msgEvent.type },
                     ...viewsByType.filter(view => view.id !== msgEvent.sender)
-                        .map(view => { return { link: 'host extension->' + view.id, type: msgEvent.type }; })
+                        .map(view => { return { link: toLinkId('host extension', view.id), type: msgEvent.type }; })
                 ];
             }
             // webview type receiver
-            return viewsByType.map(view => { return { link: msgEvent.sender + '->' + view.id, type: msgEvent.type }; });
+            return viewsByType.map(view => { return { link: toLinkId(msgEvent.sender, view.id), type: msgEvent.type }; });
         } else {
-            return [{ link: msgEvent.sender + '->' + msgEvent.receiver, type: msgEvent.type }];
+            return [{ link: toLinkId(msgEvent.sender, msgEvent.receiver), type: msgEvent.type }];
         }
     }
 
@@ -223,10 +224,13 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
             storeState(this.state);
             if (refreshTable) {
                 // refresh table
-                this.eventTable.getGridApi()?.setRowData(
-                    this.state.datasetSrc.get(this.state.selectedExtension)?.events ?? []);
+                this.eventTable.getGridApi()?.setRowData(this.selectedExtensionData()?.events ?? []);
             }
         });
+    }
+
+    selectedExtensionData(): ExtensionData | undefined {
+        return this.state.datasetSrc.get(this.state.selectedExtension);
     }
 
     async fillExtensionsList(refresh: boolean): Promise<void> {
@@ -258,7 +262,7 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
     }
 
     gridRowSelected(event: CellFocusedEvent<ExtendedMessengerEvent>): void {
-        const selectedExt = this.state.datasetSrc.get(this.state.selectedExtension);
+        const selectedExt = this.selectedExtensionData();
         if (selectedExt && event.rowIndex !== null) {
             const row = event.api.getDisplayedRowAtIndex(event.rowIndex);
             if (row?.data) {
