@@ -27,6 +27,9 @@ export interface ExtendedMessengerEvent extends MessengerEvent {
     methodTooltip?: string
 }
 
+const MESSENGER_EXTENSION_ID = 'TypeFox.vscode-messenger-devtools';
+export const HOST_EXTENSION_NAME = 'host extension';
+
 class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsComponentState>{
 
     messenger: Messenger;
@@ -47,8 +50,12 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
         this.messenger.start();
         this.fillExtensionsList(false).then(() => {
             if (this.state.selectedExtension === '' && this.state.datasetSrc.size > 0) {
-                // set first entry as selected extension
-                this.updateState({ ...this.state, selectedExtension: this.state.datasetSrc.keys().next().value }, true);
+                // set first not vscode-messenger entry as selected extension
+                let extensionToPreset = this.state.datasetSrc.keys().next().value;
+                if (this.state.datasetSrc.size > 1) {
+                    extensionToPreset = Array.from(this.state.datasetSrc.keys()).filter(key => key !== MESSENGER_EXTENSION_ID)[0] ?? extensionToPreset;
+                }
+                this.updateState({ ...this.state, selectedExtension: extensionToPreset }, true);
             } else {
                 this.updateState(this.state, true);
             }
@@ -98,6 +105,27 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
                     }
                 }
             };
+
+        function collectOutdatedViews(selectedExt: ExtensionData | undefined): string[] {
+            if (!selectedExt) return [];
+            const unknownViews = new Set<string>();
+            const isKnown = (id: string): boolean => {
+                if (id === BROADCAST.type || id === HOST_EXTENSION_NAME) {
+                    return true;
+                }
+                return selectedExt.info?.webviews.findIndex(view => view.id === id || view.type === id) !== -1;
+            };
+            selectedExt.events.forEach(event => {
+                if (!isKnown(event.sender!)) {
+                    unknownViews.add(event.sender!);
+                }
+                if (!isKnown(event.receiver)) {
+                    unknownViews.add(event.receiver);
+                }
+            });
+            return Array.from(unknownViews);
+        }
+
         return (
             <>
                 <ViewHeader
@@ -153,6 +181,7 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
                         this.state.diagramShown &&
                         <Diagram extensionName={selectedExt?.name ?? ''}
                             webviews={selectedExt?.info?.webviews ?? []}
+                            outdatedWebviews={collectOutdatedViews(selectedExt)}
                             doCenter={this.state.diagramShown}
                         />
                     }
@@ -204,11 +233,13 @@ class DevtoolsComponent extends React.Component<Record<string, any>, DevtoolsCom
         const viewsByType = extensionData.info?.webviews.filter(view => msgEvent.receiver === BROADCAST.type || view.type === msgEvent.receiver) ?? [];
         if (viewsByType.length > 0) {
             if (msgEvent.receiver === BROADCAST.type) {
-                // for broadcast, events first send to the extension host
+                // for broadcast, events first send event to the extension host. Then the host sends the event to all webviews.
                 return [
-                    { link: toLinkId(msgEvent.sender, 'host extension'), type: msgEvent.type },
-                    ...viewsByType.filter(view => view.id !== msgEvent.sender)
-                        .map(view => { return { link: toLinkId('host extension', view.id), type: msgEvent.type }; })
+                    { link: toLinkId(msgEvent.sender, HOST_EXTENSION_NAME), type: msgEvent.type },
+                    {
+                        link: viewsByType.map(targetView => toLinkId(HOST_EXTENSION_NAME, targetView.id)), type: msgEvent.type
+                    }
+
                 ];
             }
             // webview type receiver

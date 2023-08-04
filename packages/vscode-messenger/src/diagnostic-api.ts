@@ -67,7 +67,7 @@ export type EventType = 'notification' | 'request' | 'response' | 'unknown';
 export interface MessengerEvent {
     id?: string | undefined,
     type: EventType,
-    sender?: string,
+    sender: string,
     receiver: string,
     method?: string | undefined,
     error?: string | undefined,

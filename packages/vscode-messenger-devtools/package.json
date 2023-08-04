@@ -40,7 +40,7 @@
 		"build:webview": "npm --prefix ./webview-ui run build",
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
+		"watch": "tsc -watch -p ./ & cd ./webview-ui && npm run watch",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./lib/test/runTest.js"

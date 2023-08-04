@@ -67,13 +67,15 @@ export class MessagesPanel {
         if (!this) {
             return;
         }
-        this._panel.dispose();
+        this._panel?.dispose();
 
         // Dispose of all disposables (i.e. commands) for the current webview panel
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
+        if (this._disposables) {
+            while (this._disposables.length) {
+                const disposable = this._disposables.pop();
+                if (disposable) {
+                    disposable.dispose();
+                }
             }
         }
     }
