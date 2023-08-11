@@ -139,7 +139,7 @@ export function Diagram(props: DiagramProps): JSX.Element {
                         particleSize = 4;
                         particleColor = toParticleColor(highlight.type);
                         diagramRef.current?.emitParticle(linkObj);
-                    }, index * 450);
+                    }, index * 600);
                 }
             };
             if (Array.isArray(highlight.link)) {
@@ -159,7 +159,7 @@ export function Diagram(props: DiagramProps): JSX.Element {
         nodeLabel="shortName"
         linkAutoColorBy="name"
         linkDirectionalParticles={particleSize}
-        linkDirectionalParticleSpeed={0.03}
+        linkDirectionalParticleSpeed={0.01}
         linkDirectionalParticleColor={particleColor}
         nodeCanvasObject={(rawNode, ctx, _globalScale) => {
             rawNode.vx = 10;
