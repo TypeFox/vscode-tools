@@ -2,7 +2,10 @@
 
 RPC messaging library for the VS Code extension platform. Makes the communication between your [VS Code extension](https://code.visualstudio.com/) and its [webviews](https://code.visualstudio.com/api/extension-guides/webview) much simpler.
 
-[![npm](https://img.shields.io/npm/v/vscode-messenger)](https://www.npmjs.com/package/vscode-messenger) [![CI](https://github.com/TypeFox/vscode-messenger/actions/workflows/main.yml/badge.svg)](https://github.com/TypeFox/vscode-messenger/actions/workflows/main.yml) [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/typefox/vscode-messenger)
+[![npm](https://img.shields.io/npm/v/vscode-messenger)](https://www.npmjs.com/package/vscode-messenger)
+[![CI](https://github.com/TypeFox/vscode-messenger/actions/workflows/main.yml/badge.svg)](https://github.com/TypeFox/vscode-messenger/actions/workflows/main.yml)
+[![License](https://img.shields.io/github/license/TypeFox/vscode-messenger?color=green)](https://github.com/TypeFox/vscode-messenger/blob/main/LICENSE)
+[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/typefox/vscode-messenger)
 
 #### Supported features
 
